@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css'; // Import the CSS file for styling
 import imageSrc from './crashimage.avif';
+import TupleCount from './GetTupleCount';
 
 // Welcome Page
 const WelcomePage = () => {
@@ -43,6 +44,7 @@ const ButtonsPage = () => {
   return (
     <div className="page">
       <div className="top-left">
+        <TupleCount />
       <nav>
         <Link to="/">
           <button>Back</button>

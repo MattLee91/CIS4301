@@ -154,6 +154,19 @@ p {
   transform: translate(50%, -50%);
 }
 
+.countbutton {
+  display: block; /* Make buttons block-level elements to stack vertically */
+  width: 400px; /* Adjust width of buttons */
+  height: 100px; /* Adjust height of buttons */
+  font-size: 40px; /* Adjust font size of buttons */
+  margin: 40px auto; /* Center buttons horizontally and add vertical margin */
+
+  position: absolute;
+  top: 25%;
+  left: 230px;
+  transform: translate(-50%, -50%);
+}
+
 .page img {
   max-width: 80%; /* Ensure the image fits within its container */
   max-height: 80%; /* Ensure the image fits within its container */

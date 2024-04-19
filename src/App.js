@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-//import './App.css'; // Import the CSS file for styling
+import './App.css'; // Import the CSS file for styling
 import imageSrc from './crashimage.avif';
 import TupleCount from './GetTupleCount';
 import Chart from 'chart.js/auto';
@@ -188,6 +188,8 @@ const Page1 = () => {
   );
 };
 
+let myChart0;
+
 const Page2 = () => {
   const [hour1, setHour1] = useState("");
   const [hour2, setHour2] = useState("");
@@ -203,11 +205,46 @@ const Page2 = () => {
     })
     .then(response => {
       console.log("got response");
+      updateChart(response.data);
       setData(response.data); 
     })
     .catch(error => {
       console.error('Error:', error);
     });
+  };
+
+  // Function to update the chart
+  const updateChart = (data) => {
+    if(!myChart0)
+    {
+      const ctx = document.getElementById('myChart0');
+      myChart0 = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(entry => "Hour " + entry.HOUR),
+          datasets: [{
+            label: 'Number of Crashes',
+            data: data.map(entry => entry.NUMBEROFCRASHES),
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+    else
+    {
+      myChart0.data.labels = data.map(entry => "Hour " + entry.HOUR);
+      myChart0.data.datasets[0].data = data.map(entry => entry.NUMBEROFCRASHES);
+      myChart0.update();
+    }
   };
 
   return (
@@ -238,29 +275,9 @@ const Page2 = () => {
       <button onClick={handleGoButtonClick}>Go</button>
       
       <div>
-        {data.length > 0 ? (
-          <table>
-            <thead>
-              <tr>
-                <th>Borough</th>
-                <th>Hour</th>
-                <th>Number of Crashes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((entry, index) => (
-                <tr key={index}>
-                  <td>{entry.BOROUGHNAME}</td>
-                  <td>{entry.HOUR}</td>
-                  <td>{entry.NUMBEROFCRASHES}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p>No crashes!</p>
-        )}
+        <canvas id="myChart0"></canvas>
       </div>
+
     </div>
   );
 };
@@ -486,13 +503,14 @@ const Page5 = () => {
 
   // Function to update the chart
   const updateChart = (data) => {
+    data.sort((a, b) => a.YEAR - b.YEAR);
     if(!myChart4)
     {
       const ctx = document.getElementById('myChart4');
       myChart4 = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: data.map(entry => entry.YEAR),
+          labels: data.map(entry => entry.YEAR + ' ' + entry.DESCRIPTION),
           datasets: [{
             label: 'Number of Collisions',
             data: data.map(entry => entry.MAX2),
@@ -512,7 +530,7 @@ const Page5 = () => {
     }
     else
     {
-      myChart4.data.labels = data.map(entry => entry.YEAR);
+      myChart4.data.labels = data.map(entry => entry.YEAR + ' ' + entry.DESCRIPTION);
       myChart4.data.datasets[0].data = data.map(entry => entry.MAX2);
       myChart4.update();
     }

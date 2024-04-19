@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-//import './App.css'; // Import the CSS file for styling
+import './App.css'; // Import the CSS file for styling
 import imageSrc from './crashimage.avif';
 import TupleCount from './GetTupleCount';
 import Chart from 'chart.js/auto';
@@ -122,13 +122,19 @@ const Page1 = () => {
 
   // Function to update the chart
   const updateChart = (data) => {
+    data.forEach(entry => {
+      entry.yearMonth = entry.YEAR * 100 + entry.MONTH;
+    });
+
+    // Sort the data array by year and month
+    data.sort((a, b) => a.yearMonth - b.yearMonth);
     if(!myChart1)
     {
       const ctx = document.getElementById('myChart1');
       myChart1 = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: data.map(entry => "Month " + entry.MONTH),
+          labels: data.map(entry => "Month " + entry.MONTH + " " + entry.YEAR),
           datasets: [{
             label: 'Number of Crashes',
             data: data.map(entry => entry.NUMBEROFCRASHES),
@@ -148,7 +154,7 @@ const Page1 = () => {
     }
     else
     {
-      myChart1.data.labels = data.map(entry => "Month " + entry.MONTH);
+      myChart1.data.labels = data.map(entry => "Month " + entry.MONTH + " " + entry.YEAR);
       myChart1.data.datasets[0].data = data.map(entry => entry.NUMBEROFCRASHES);
       myChart1.update();
     }
@@ -188,6 +194,8 @@ const Page1 = () => {
   );
 };
 
+let myChart0;
+
 const Page2 = () => {
   const [hour1, setHour1] = useState("");
   const [hour2, setHour2] = useState("");
@@ -203,11 +211,46 @@ const Page2 = () => {
     })
     .then(response => {
       console.log("got response");
+      updateChart(response.data);
       setData(response.data); 
     })
     .catch(error => {
       console.error('Error:', error);
     });
+  };
+
+  // Function to update the chart
+  const updateChart = (data) => {
+    if(!myChart0)
+    {
+      const ctx = document.getElementById('myChart0');
+      myChart0 = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(entry => "Hour " + entry.HOUR),
+          datasets: [{
+            label: 'Number of Crashes',
+            data: data.map(entry => entry.NUMBEROFCRASHES),
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+    else
+    {
+      myChart0.data.labels = data.map(entry => "Hour " + entry.HOUR);
+      myChart0.data.datasets[0].data = data.map(entry => entry.NUMBEROFCRASHES);
+      myChart0.update();
+    }
   };
 
   return (
@@ -238,29 +281,9 @@ const Page2 = () => {
       <button onClick={handleGoButtonClick}>Go</button>
       
       <div>
-        {data.length > 0 ? (
-          <table>
-            <thead>
-              <tr>
-                <th>Borough</th>
-                <th>Hour</th>
-                <th>Number of Crashes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((entry, index) => (
-                <tr key={index}>
-                  <td>{entry.BOROUGHNAME}</td>
-                  <td>{entry.HOUR}</td>
-                  <td>{entry.NUMBEROFCRASHES}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p>No crashes!</p>
-        )}
+        <canvas id="myChart0"></canvas>
       </div>
+
     </div>
   );
 };
@@ -339,6 +362,7 @@ const Page3 = () => {
       <input id="year" type="text" name="inputbox" placeholder="Year: YYYY" value={year} onChange={(e) => setYear(e.target.value)} />
       
       <select name="event" id="event-select" value={event} onChange={(e) => setEvent(e.target.value)}>
+      <option value={-1}>Special event</option>
         <option value={0}>Christmas</option>
         <option value={4}>New Year's Eve</option>
         <option value={2}>Halloween</option>
@@ -373,6 +397,7 @@ const Page4 = () => {
   const [data, setData] = useState([]);
 
   const handleGoButtonClick = () => {
+    console.log("Attempting post request");
     axios.post('http://localhost:5000/query4', {
       selectedBorough: selectedBorough,
       location: location
@@ -389,6 +414,25 @@ const Page4 = () => {
 
   // Function to update the chart
   const updateChart = (data) => {
+    data.sort((a, b) => {
+      // Handling "20+"
+      if (a.KM_RANGE === '20+' && b.KM_RANGE !== '20+') {
+          return 1; // "20+" is greater than other ranges
+      } else if (a.KM_RANGE !== '20+' && b.KM_RANGE === '20+') {
+          return -1; // Other ranges are less than "20+"
+      }
+  
+      // Split the range strings into arrays of numbers
+      const rangeA = a.KM_RANGE.split('-').map(str => (str === '20+' ? Infinity : parseInt(str)));
+      const rangeB = b.KM_RANGE.split('-').map(str => (str === '20+' ? Infinity : parseInt(str)));
+  
+      // Compare the first number of each range
+      const comparison = rangeA[0] - rangeB[0];
+  
+      // If the first number is the same, compare the second number
+      return comparison === 0 ? (rangeA[1] - rangeB[1]) : comparison;
+    });
+  
     if(!myChart3)
     {
       const ctx = document.getElementById('myChart3');
@@ -486,13 +530,14 @@ const Page5 = () => {
 
   // Function to update the chart
   const updateChart = (data) => {
+    data.sort((a, b) => a.YEAR - b.YEAR);
     if(!myChart4)
     {
       const ctx = document.getElementById('myChart4');
       myChart4 = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: data.map(entry => entry.YEAR),
+          labels: data.map(entry => entry.YEAR + ' ' + entry.DESCRIPTION),
           datasets: [{
             label: 'Number of Collisions',
             data: data.map(entry => entry.MAX2),
@@ -512,7 +557,7 @@ const Page5 = () => {
     }
     else
     {
-      myChart4.data.labels = data.map(entry => entry.YEAR);
+      myChart4.data.labels = data.map(entry => entry.YEAR + ' ' + entry.DESCRIPTION);
       myChart4.data.datasets[0].data = data.map(entry => entry.MAX2);
       myChart4.update();
     }

@@ -122,13 +122,19 @@ const Page1 = () => {
 
   // Function to update the chart
   const updateChart = (data) => {
+    data.forEach(entry => {
+      entry.yearMonth = entry.YEAR * 100 + entry.MONTH;
+    });
+
+    // Sort the data array by year and month
+    data.sort((a, b) => a.yearMonth - b.yearMonth);
     if(!myChart1)
     {
       const ctx = document.getElementById('myChart1');
       myChart1 = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: data.map(entry => "Month " + entry.MONTH),
+          labels: data.map(entry => "Month " + entry.MONTH + " " + entry.YEAR),
           datasets: [{
             label: 'Number of Crashes',
             data: data.map(entry => entry.NUMBEROFCRASHES),
@@ -148,7 +154,7 @@ const Page1 = () => {
     }
     else
     {
-      myChart1.data.labels = data.map(entry => "Month " + entry.MONTH);
+      myChart1.data.labels = data.map(entry => "Month " + entry.MONTH + " " + entry.YEAR);
       myChart1.data.datasets[0].data = data.map(entry => entry.NUMBEROFCRASHES);
       myChart1.update();
     }
@@ -356,6 +362,7 @@ const Page3 = () => {
       <input id="year" type="text" name="inputbox" placeholder="Year: YYYY" value={year} onChange={(e) => setYear(e.target.value)} />
       
       <select name="event" id="event-select" value={event} onChange={(e) => setEvent(e.target.value)}>
+      <option value={-1}>Special event</option>
         <option value={0}>Christmas</option>
         <option value={4}>New Year's Eve</option>
         <option value={2}>Halloween</option>
@@ -390,6 +397,7 @@ const Page4 = () => {
   const [data, setData] = useState([]);
 
   const handleGoButtonClick = () => {
+    console.log("Attempting post request");
     axios.post('http://localhost:5000/query4', {
       selectedBorough: selectedBorough,
       location: location
@@ -406,6 +414,25 @@ const Page4 = () => {
 
   // Function to update the chart
   const updateChart = (data) => {
+    data.sort((a, b) => {
+      // Handling "20+"
+      if (a.KM_RANGE === '20+' && b.KM_RANGE !== '20+') {
+          return 1; // "20+" is greater than other ranges
+      } else if (a.KM_RANGE !== '20+' && b.KM_RANGE === '20+') {
+          return -1; // Other ranges are less than "20+"
+      }
+  
+      // Split the range strings into arrays of numbers
+      const rangeA = a.KM_RANGE.split('-').map(str => (str === '20+' ? Infinity : parseInt(str)));
+      const rangeB = b.KM_RANGE.split('-').map(str => (str === '20+' ? Infinity : parseInt(str)));
+  
+      // Compare the first number of each range
+      const comparison = rangeA[0] - rangeB[0];
+  
+      // If the first number is the same, compare the second number
+      return comparison === 0 ? (rangeA[1] - rangeB[1]) : comparison;
+    });
+  
     if(!myChart3)
     {
       const ctx = document.getElementById('myChart3');
